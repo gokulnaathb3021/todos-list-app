@@ -19,21 +19,43 @@ export async function createToDo(formData: FormData) {
   }
 }
 
-export async function fetchToDos(email: string) {
+export async function fetchToDos(email: string, pageNum: number) {
+  const ITEM_PER_PAGE = 4;
   try {
     await connect();
-    const todos = await prisma.todo.findMany({ where: { email } });
-    return { todos };
+    const count = (await prisma.todo.findMany({ where: { email } })).length;
+    const todos = await prisma.todo.findMany({
+      where: { email },
+      orderBy: { date: "desc" },
+      take: 4,
+      skip: (pageNum - 1) * 4,
+    });
+    return { todos, count };
   } catch (e) {
     console.log(e);
     throw new Error("Failed to fetch todos!");
   }
 }
 
-export async function fetchCertainToDos(q: string, email: string) {
+export async function fetchCertainToDos(
+  q: string,
+  email: string,
+  pageNum: number
+) {
   const regex = new RegExp(q, "i");
   try {
     await connect();
+    const count = (
+      await prisma.todo.findMany({
+        where: {
+          todo: {
+            contains: regex.source,
+            mode: "insensitive",
+          },
+          email,
+        },
+      })
+    ).length;
     const todosContainingQ = await prisma.todo.findMany({
       where: {
         todo: {
@@ -42,8 +64,11 @@ export async function fetchCertainToDos(q: string, email: string) {
         },
         email,
       },
+      orderBy: { date: "desc" },
+      take: 4,
+      skip: (pageNum - 1) * 4,
     });
-    return todosContainingQ;
+    return { todosContainingQ, count };
   } catch (e) {
     throw new Error("Couldn't fetch those certain todos.");
   }

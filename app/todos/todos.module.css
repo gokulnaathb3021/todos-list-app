@@ -102,3 +102,24 @@
     margin-top: 5px;
   }
 }
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+}
+
+.pagination button {
+  border-bottom: 1px solid rgb(3, 220, 3);
+}
+
+.pagination button:nth-child(1) {
+  border-left: 2px solid white;
+}
+
+.pagination button:nth-child(2) {
+  border-right: 2px solid white;
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+}

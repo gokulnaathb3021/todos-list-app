@@ -1,6 +1,4 @@
 "use client";
-import { auth } from "@/firebase/config";
-import { signOut } from "firebase/auth";
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../context/authContext";
 import { redirect } from "next/navigation";
@@ -26,28 +24,49 @@ const Todos: React.FC = () => {
   const [todos, setTodos] = useState<X[]>([]);
   const [num, setNum] = useState<number>(1);
   const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [pageNum, setPageNum] = useState<number>(1);
+  const [totalTodos, setTotalTodos] = useState<number>(0);
 
   function refreshPage() {
     setNum((prevNum) => prevNum + 1);
   }
 
   useEffect(() => {
-    fetchToDos(user?.email as string)
-      .then((data) => {
-        setTodos(data.todos);
-      })
-      .catch((error) => {
-        throw new Error(error);
-      });
-  }, [num]);
+    if (isSearching) {
+      const todoInput = document.getElementById(
+        "todoInput"
+      ) as HTMLInputElement | null;
+      fetchCertainToDos(
+        todoInput?.value as string,
+        user?.email as string,
+        pageNum
+      )
+        .then((data) => {
+          setTotalTodos(data.count);
+          setTodos(data.todosContainingQ);
+        })
+        .catch((e) => {
+          throw new Error(e);
+        });
+    } else
+      fetchToDos(user?.email as string, pageNum)
+        .then((data) => {
+          setTotalTodos(data.count ?? 0);
+          setTodos(data.todos);
+        })
+        .catch((error) => {
+          throw new Error(error);
+        });
+  }, [num, pageNum]);
 
   function handleCreate(formData: FormData) {
     const { todo } = Object.fromEntries(formData);
     if (!todo) return;
     createToDo(formData)
       .then(() => {
-        fetchToDos(user?.email as string)
+        fetchToDos(user?.email as string, pageNum)
           .then((data) => {
+            setTotalTodos(data.count);
             setTodos(data.todos);
           })
           .catch((error) => {
@@ -70,9 +89,15 @@ const Todos: React.FC = () => {
       "todoInput"
     ) as HTMLInputElement | null;
     if (todoInput?.value) setIsSearching(true);
-    fetchCertainToDos(todoInput?.value as string, user?.email as string)
+    setPageNum(1);
+    fetchCertainToDos(
+      todoInput?.value as string,
+      user?.email as string,
+      pageNum
+    )
       .then((data) => {
-        setTodos(data);
+        setTotalTodos(data.count);
+        setTodos(data.todosContainingQ);
       })
       .catch((e) => {
         throw new Error(e);
@@ -87,8 +112,12 @@ const Todos: React.FC = () => {
       todoInput.value = "";
     }
     setIsSearching(false);
+    setPageNum(1);
     setNum((prevNum) => prevNum + 1);
   }
+
+  const hasPrev = 4 * (pageNum - 1) > 0;
+  const hasNext = 4 * (pageNum - 1) + 4 < totalTodos;
 
   return (
     <div
@@ -126,16 +155,60 @@ const Todos: React.FC = () => {
           </div>
 
           <div className={styles.submitAndSearch}>
-            <button type="submit">
+            <button type="submit" hidden={isSearching}>
               <CiCirclePlus size={30} />
             </button>
-            <button type="button" onClick={handleSearch}>
+            <button type="button" onClick={handleSearch} hidden={isSearching}>
               <FcSearch size={30} />
             </button>
           </div>
         </form>
 
+        {todos.length === 0 && !isSearching && (
+          <p
+            style={{
+              textAlign: "center",
+              margin: "0",
+              padding: "0",
+              fontSize: "large",
+            }}
+          >
+            No To-Dos yet. Add one🚀
+          </p>
+        )}
+        {todos.length === 0 && isSearching && (
+          <p
+            style={{
+              textAlign: "center",
+              margin: "0",
+              padding: "0",
+              fontSize: "large",
+            }}
+          >
+            No matching To-Dos found!
+          </p>
+        )}
         <TodosList todos={todos} refreshPage={refreshPage} />
+        {totalTodos > 4 && (
+          <div className={styles.pagination}>
+            <button
+              disabled={!hasPrev}
+              onClick={() => {
+                setPageNum((currPageNum) => currPageNum - 1);
+              }}
+            >
+              Previous
+            </button>
+            <button
+              disabled={!hasNext}
+              onClick={() => {
+                setPageNum((currPageNum) => currPageNum + 1);
+              }}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
