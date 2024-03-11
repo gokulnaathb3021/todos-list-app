@@ -192,7 +192,11 @@ const Todos: React.FC = () => {
         {todos.length === 0 && isSearching && (
           <ConditionalP text="No matching To-Dos found!"></ConditionalP>
         )}
-        {isAdding && <p style={{ textAlign: "center" }}>Adding ToDo...</p>}
+        {isAdding && (
+          <p style={{ textAlign: "center", fontWeight: "bold" }}>
+            Adding ToDo...
+          </p>
+        )}
         {!fetchingFailed && (
           <TodosList todos={todos} refreshPage={refreshPage} />
         )}
