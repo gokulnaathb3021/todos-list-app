@@ -29,6 +29,7 @@ const Todos: React.FC = () => {
   const [totalTodos, setTotalTodos] = useState<number>(0);
   const [isFetching, setIsFetching] = useState<boolean>(false);
   const [fetchingFailed, setFetchingFailed] = useState<boolean>(false);
+  const [isAdding, setIsAdding] = useState<boolean>(false);
 
   function refreshPage() {
     setNum((prevNum) => prevNum + 1);
@@ -74,11 +75,13 @@ const Todos: React.FC = () => {
   function handleCreate(formData: FormData) {
     const { todo } = Object.fromEntries(formData);
     if (!todo) return;
+    setIsAdding(true);
     createToDo(formData)
       .then(() => {
         fetchToDos(user?.email as string, pageNum)
           .then((data) => {
             if (fetchingFailed) setFetchingFailed(false);
+            setIsAdding(false);
             setTotalTodos(data.count);
             setTodos(data.todos);
           })
@@ -189,6 +192,7 @@ const Todos: React.FC = () => {
         {todos.length === 0 && isSearching && (
           <ConditionalP text="No matching To-Dos found!"></ConditionalP>
         )}
+        {isAdding && <p style={{ textAlign: "center" }}>Adding ToDo...</p>}
         {!fetchingFailed && (
           <TodosList todos={todos} refreshPage={refreshPage} />
         )}
