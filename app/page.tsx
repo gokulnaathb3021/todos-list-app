@@ -22,7 +22,6 @@ export default function Home() {
       .then((userCred) => {
         if (areCredsInvalid) setAreCredsInvalid(false);
         setLoggingIn((prevState) => !prevState);
-        console.log(userCred);
       })
       .catch((e) => {
         setAreCredsInvalid(true);
