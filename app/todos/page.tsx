@@ -9,6 +9,7 @@ import { CiCirclePlus } from "react-icons/ci";
 import { FcSearch } from "react-icons/fc";
 import { RxCrossCircled } from "react-icons/rx";
 import Header from "../components/Header";
+import ConditionalP from "../components/ConditionalP";
 
 type X = {
   id: string;
@@ -26,10 +27,16 @@ const Todos: React.FC = () => {
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [pageNum, setPageNum] = useState<number>(1);
   const [totalTodos, setTotalTodos] = useState<number>(0);
+  const [isFetching, setIsFetching] = useState<boolean>(false);
+  const [fetchingFailed, setFetchingFailed] = useState<boolean>(false);
 
   function refreshPage() {
     setNum((prevNum) => prevNum + 1);
   }
+
+  useEffect(() => {
+    setIsFetching(true);
+  }, []);
 
   useEffect(() => {
     if (isSearching) {
@@ -42,19 +49,24 @@ const Todos: React.FC = () => {
         pageNum
       )
         .then((data) => {
+          if (fetchingFailed) setFetchingFailed(false);
           setTotalTodos(data.count);
           setTodos(data.todosContainingQ);
         })
         .catch((e) => {
+          setFetchingFailed(true);
           throw new Error(e);
         });
     } else
       fetchToDos(user?.email as string, pageNum)
         .then((data) => {
+          if (fetchingFailed) setFetchingFailed(false);
+          setIsFetching(false);
           setTotalTodos(data.count ?? 0);
           setTodos(data.todos);
         })
         .catch((error) => {
+          setFetchingFailed(true);
           throw new Error(error);
         });
   }, [num, pageNum]);
@@ -66,14 +78,17 @@ const Todos: React.FC = () => {
       .then(() => {
         fetchToDos(user?.email as string, pageNum)
           .then((data) => {
+            if (fetchingFailed) setFetchingFailed(false);
             setTotalTodos(data.count);
             setTodos(data.todos);
           })
           .catch((error) => {
+            setFetchingFailed(true);
             throw new Error(error);
           });
       })
       .catch((error) => {
+        setFetchingFailed(true);
         throw new Error(error);
       });
     const todoInput = document.getElementById(
@@ -96,10 +111,12 @@ const Todos: React.FC = () => {
       pageNum
     )
       .then((data) => {
+        if (fetchingFailed) setFetchingFailed(false);
         setTotalTodos(data.count);
         setTodos(data.todosContainingQ);
       })
       .catch((e) => {
+        setFetchingFailed(true);
         throw new Error(e);
       });
   }
@@ -163,32 +180,18 @@ const Todos: React.FC = () => {
             </button>
           </div>
         </form>
-
-        {todos.length === 0 && !isSearching && (
-          <p
-            style={{
-              textAlign: "center",
-              margin: "0",
-              padding: "0",
-              fontSize: "large",
-            }}
-          >
-            No To-Dos yet. Add one🚀
-          </p>
+        {isFetching && (
+          <ConditionalP text="Fetching your To-Dos..."></ConditionalP>
+        )}
+        {todos.length === 0 && !isSearching && !isFetching && (
+          <ConditionalP text="No To-Dos yet. Add one🚀"></ConditionalP>
         )}
         {todos.length === 0 && isSearching && (
-          <p
-            style={{
-              textAlign: "center",
-              margin: "0",
-              padding: "0",
-              fontSize: "large",
-            }}
-          >
-            No matching To-Dos found!
-          </p>
+          <ConditionalP text="No matching To-Dos found!"></ConditionalP>
         )}
-        <TodosList todos={todos} refreshPage={refreshPage} />
+        {!fetchingFailed && (
+          <TodosList todos={todos} refreshPage={refreshPage} />
+        )}
         {totalTodos > 4 && (
           <div className={styles.pagination}>
             <button
